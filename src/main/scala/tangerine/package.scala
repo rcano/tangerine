@@ -1,9 +1,7 @@
 package tangerine
 
 import javafx.beans.binding.{Binding, ObjectBinding}
-import javafx.geometry.VPos
 import javafx.beans.value.ObservableValue
-import javafx.scene.layout._
 import javafx.scene.text.Font
 
 object `package` {
@@ -14,11 +12,9 @@ object `package` {
   
   implicit class ObservableValueExt[T](private val property: ObservableValue[T]) extends AnyVal {
     import language.existentials
-    def foreach(f: T => Unit): Unit = property.addListener((_: t forSome {type t >: T}, _, v) => f(v))
-    def map[U](f: T => U): Binding[U] = new ObjectBinding[U] {
-      bind(property)
-      override def computeValue = f(property.getValue)
-    }
+    @inline def foreach(f: T => Unit): Unit = property.addListener((_: t forSome {type t >: T}, _, v) => f(v))
+    @inline def map[U](f: T => U)(implicit bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property, f)
+    @inline def zip[T2](t2: ObservableValue[T2]) = Properties.Binding(property, t2)(_ => (property.getValue, t2.getValue))
   }
   
   implicit final class ChainingOps[T](private val self: T) extends AnyVal {
@@ -27,5 +23,9 @@ object `package` {
       f(self)
       self
     }
+  }
+  
+  object & {
+    def unapply[T](t: T) = Some((t, t))
   }
 }

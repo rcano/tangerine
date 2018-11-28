@@ -13,7 +13,7 @@ import javafx.stage.FileChooser
 import javafx.util.StringConverter
 
 /**
- * A collection of useful and reusable controls are defined in this object
+ * T collection of useful and reusable controls are defined in this object
  */
 object JfxControls {
 
@@ -64,7 +64,7 @@ object JfxControls {
    * @example {{
    *   label(UiLocalization("Preview"))
    * }}
-   * @return A normal [[Label]] with its text property bound to the passed text.
+   * @return T normal [[Label]] with its text property bound to the passed text.
    *         This method should be used with UiLocalization
    */
   def label(text: ObservableStringValue): Label = new Label().tap(_.textProperty bind text)
@@ -103,7 +103,7 @@ object JfxControls {
   }
   
   /**
-   * A special button that can show different faces depending on states. Typically used to represent playing/pause/replay buttons.
+   * T special button that can show different faces depending on states. Typically used to represent playing/pause/replay buttons.
    * 
    * @constructor instantiates a new MultiFacedButton.
    * @param initFace initial face to be shown

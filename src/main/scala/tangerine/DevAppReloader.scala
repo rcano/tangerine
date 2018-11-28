@@ -112,7 +112,7 @@ class DevAppReloader extends Application {
             override def loadClass(name: String, resolve: Boolean): Class[_] = {
               var res: Class[_] = findLoadedClass(name)
               val startTime = System.currentTimeMillis
-              while (res == null && System.currentTimeMillis - startTime < 5000) {//will retry for an entire second for this class to appear
+              while (res == null && System.currentTimeMillis - startTime < 60000) {//will retry for an entire minute for this class to appear
                 try res = findClass(name)
                 catch { case e: ClassNotFoundException =>
                     try res = super.loadClass(name, false)

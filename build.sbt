@@ -15,7 +15,10 @@ jfxClassifier := {
 }
 
 libraryDependencies ++= Seq(
+  "com.lihaoyi" %% "sourcecode" % "0.1.5",
+
   "com.github.pathikrit" %% "better-files" % "3.6.0",
+  "com.beachape" %% "enumeratum" % "1.5.13",
 
   "org.openjfx" % "javafx-graphics" % jfxVersion % "provided" classifier jfxClassifier.value,
   "org.openjfx" % "javafx-controls" % jfxVersion % "provided" classifier jfxClassifier.value,
@@ -23,7 +26,6 @@ libraryDependencies ++= Seq(
   
   "org.controlsfx" % "controlsfx" % "9.0.0" % "provided",
 
-  "com.beachape" %% "enumeratum" % "1.5.13",
 )
 
 lazy val moduleJars = taskKey[Seq[(Attributed[File], java.lang.module.ModuleDescriptor)]]("moduleJars")
