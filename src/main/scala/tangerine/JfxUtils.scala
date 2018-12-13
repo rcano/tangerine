@@ -2,9 +2,10 @@ package tangerine
 
 import javafx.beans.binding.BooleanBinding
 import javafx.beans.value.{ChangeListener, ObservableValue, ObservableBooleanValue}
-import javafx.event.Event
+import javafx.collections.ListChangeListener
 import javafx.geometry.Bounds
-import javafx.scene.{Node, Scene}
+import javafx.scene.{Node, Scene, Parent}
+import javafx.scene.control._
 import javafx.scene.text.{Font, Text}
 import javafx.stage.Window
 
@@ -102,17 +103,99 @@ object JfxUtils {
     }
     property
   }
-  
-  object JfxEvent {
-    def unapply(evt: Event): ExtractedEvent = new ExtractedEvent(evt)
+ 
+  /**
+   * Find the front-most node that that has the smallest bounds around the given point
+   */
+  def pickNode(node: Node, sceneX: Double, sceneY: Double): Option[Node] = {
+    //taken from http://fxexperience.com/2016/01/node-picking-in-javafx/
+    val p = node.sceneToLocal(sceneX, sceneY)
     
-    class ExtractedEvent(val event: Event) extends AnyVal {
-      def isEmpty = false
-      def get = this
-      def _1 = event.getSource
-      def _2 = event.getTarget
-      def _3 = event.getEventType
-      def _4 = event
+    if (node contains p) {
+      node match {
+        case HasChildren(children@_*) =>
+          // we iterate through all children in reverse order, and stop when we find a match.
+          // We do this as we know the elements at the end of the list have a higher
+          // z-order, and are therefore the better match, compared to children that
+          // might also intersect (but that would be underneath the element).
+          val bestMatchingChild = children.reverseIterator.find { child =>
+            val p = child.sceneToLocal(sceneX, sceneY)
+            child.isVisible && !child.isMouseTransparent && child.contains(p)
+          }
+          
+          bestMatchingChild.flatMap(pickNode(_, sceneX, sceneY))
+          
+        case _ => Some(node)
+      }
+    } else None
+  }
+  
+  /**
+   * Produces an iterator that traverses, in breadth first style, the graph with `node` as root.
+   * Children for a node are obtained using the [[HasChildren]] extractor
+   */
+  def traverseBreadthFirst(node: Node): Iterator[Node] = {
+    val children = HasChildren.unapplySeq(node).getOrElse(Seq.empty)
+    Iterator(node) ++ children.iterator ++ children.iterator.flatMap(n => traverseBreadthFirst(n).drop(1))
+  }
+  
+  /**
+   * Produces an iterator that traverses, in depth first style, the graph with `node` as root.
+   */
+  def traverseDepthFirst(node: Node): Iterator[Node] = 
+    Iterator(node) ++ HasChildren.unapplySeq(node).getOrElse(Seq.empty).flatMap(traverseDepthFirst)
+  
+  /**
+   * Register a listener for any structural change in a given [[Node]]. This works by recursively adding a listener to children so that
+   * any structure change gets notified. It also self register to the nodes added, and deregisters from those removed.
+   * Children node are obtained using [[HasChildren]] extractor.
+   * @param node Root node of the graph
+   * @param listener function to be called on each change
+   * @return the Registered synthethized listener. You'll need this listener if you wish to unregister from the underlying graph.
+   */
+  def registerGraphStructureListener(node: Node)(listener: ListChangeListener.Change[_ <: Node] => Unit): StructureListenerRegistration = {
+    object registration extends StructureListenerRegistration {
+      val childrenChangeListener: ListChangeListener[Node] = evt => while (evt.next) {
+        evt.getAddedSubList forEach register
+        evt.getRemoved forEach unregister
+        listener(evt)
+      }
+      val nodeChangeListener: ChangeListener[Node] = (_, prev, newv) => {
+        unregister(prev)
+        register(newv)
+      }
+      val tabsChangeListener: ListChangeListener[Tab] = evt => while(evt.next) {
+        evt.getAddedSubList forEach (t => register(t.getContent))
+        evt.getRemoved forEach (t => unregister(t.getContent))
+      }
+      def register(n: Node): Unit = traverseDepthFirst(n) foreach {
+        case s: ScrollPane => s.contentProperty.addListener(nodeChangeListener)
+        case t: TabPane => t.getTabs.addListener(tabsChangeListener)
+        case l: Labeled => l.graphicProperty.addListener(nodeChangeListener)
+        case a: Accordion => a.getPanes.addListener(childrenChangeListener)
+        case t: ToolBar => t.getItems.addListener(childrenChangeListener)
+        case b: ButtonBar => b.getButtons.addListener(childrenChangeListener)
+        case p: Parent => p.getChildrenUnmodifiable.addListener(childrenChangeListener)
+        case _ =>
+      }
+      def unregister(n: Node): Unit = traverseDepthFirst(n) match {
+        case s: ScrollPane => s.contentProperty.removeListener(nodeChangeListener)
+        case t: TabPane => t.getTabs.removeListener(tabsChangeListener)
+        case l: Labeled => l.graphicProperty.removeListener(nodeChangeListener)
+        case a: Accordion => a.getPanes.removeListener(childrenChangeListener)
+        case t: ToolBar => t.getItems.removeListener(childrenChangeListener)
+        case b: ButtonBar => b.getButtons.removeListener(childrenChangeListener)
+        case p: Parent => p.getChildrenUnmodifiable.removeListener(childrenChangeListener)
+        case p: Parent => p.getChildrenUnmodifiable.removeListener(childrenChangeListener)
+        case _ =>
+      }
+      override def cancel = unregister(node)
     }
+    registration.register(node)
+    registration
+  }
+  
+  trait StructureListenerRegistration {
+    def cancel(): Unit
   }
 }

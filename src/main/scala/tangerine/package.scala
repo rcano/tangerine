@@ -1,8 +1,10 @@
 package tangerine
 
-import javafx.beans.binding.{Binding, ObjectBinding}
 import javafx.beans.value.ObservableValue
+import javafx.scene.{Node, Parent}
+import javafx.scene.control._
 import javafx.scene.text.Font
+import scala.collection.JavaConverters._
 
 object `package` {
 
@@ -22,6 +24,19 @@ object `package` {
     @inline def tap(f: T => Any): T = {
       f(self)
       self
+    }
+  }
+  
+  object HasChildren {
+    def unapplySeq(n: Node): Option[Seq[Node]] = n match {
+      case s: ScrollPane => Some(Seq(s.getContent))
+      case t: TabPane => Some(t.getTabs.asScala.map(_.getContent))
+      case l: Labeled => Some(Seq(l.getGraphic))
+      case a: Accordion => Some(a.getPanes.asScala)
+      case t: ToolBar => Some(t.getItems.asScala)
+      case b: ButtonBar => Some(b.getButtons.asScala)
+      case p: Parent => Some(p.getChildrenUnmodifiable.asScala)
+      case _ => None
     }
   }
   
