@@ -322,8 +322,6 @@ object Properties {
     def concat(v: Any) = e.concat(v)
   }
   
-  def Binding[T](values: ObservableValue[_]*)(compute: ObjectBinding[_] => T): ObjectBinding[T] = new ObjectBinding[T] {
-    bind(values:_*)
-    override def computeValue = compute(this)
-  }
+  def Binding[T](values: ObservableValue[_]*)(compute: Binding[_] => T)(implicit bindingSelector: BindingTypeSelector[T]): bindingSelector.BindingType = 
+    bindingSelector.bind(values:_*)(compute)
 }

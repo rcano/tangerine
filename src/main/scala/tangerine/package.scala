@@ -19,7 +19,7 @@ object `package` {
   implicit class ObservableValueExt[T](private val property: ObservableValue[T]) extends AnyVal {
     import language.existentials
     @inline def foreach(f: T => Unit): Unit = property.addListener((_: t forSome {type t >: T}, _, v) => f(v))
-    @inline def map[U](f: T => U)(implicit bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property, f)
+    @inline def map[U](f: T => U)(implicit bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property)(_ => f(property.getValue))
     @inline def zip[T2](t2: ObservableValue[T2]) = Properties.Binding(property, t2)(_ => (property.getValue, t2.getValue))
   }
   
