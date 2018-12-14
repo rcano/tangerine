@@ -5,6 +5,7 @@ import javafx.scene.{Node, Parent}
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.collections.transformation.TransformationList
+import javafx.geometry.Insets
 import javafx.scene.control._
 import javafx.scene.text.Font
 import scala.collection.JavaConverters._
@@ -89,4 +90,6 @@ object `package` {
   object & {
     def unapply[T](t: T) = Some((t, t))
   }
+  
+  def Margin(top: Double = 0, right: Double = 0, bot: Double = 0, left: Double = 0) = new Insets(top, right, bot, left)
 }
