@@ -7,6 +7,7 @@ import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.event.Event
+import javafx.event.EventHandler
 import javafx.geometry.Point2D
 import javafx.scene.Node
 import javafx.scene.input.{MouseButton, MouseEvent}
@@ -30,10 +31,12 @@ class TextSelectionSupport() {
   private val textFlowsSeq = FXCollections.observableArrayList[TextFlow]()
   
   private var lastRegistration: tangerine.JfxUtils.StructureListenerRegistration = null
+  private var lastSmSubscription: EventHandler[MouseEvent] = null
   rootNode.addListener { (_, oldv, newv) => 
     if (oldv != null) {
       textFlowsSeq.clear()
       lastRegistration.cancel()
+      oldv.removeEventHandler(MouseEvent.ANY, lastSmSubscription)
     }
 
     registerTextFlowsIn(newv)
@@ -43,7 +46,7 @@ class TextSelectionSupport() {
       evt.getRemoved.iterator.asScala foreach unregisterTextFlowsIn
     }
     
-    sm.subscribe(newv, MouseEvent.ANY)
+    lastSmSubscription = sm.subscribe(newv, MouseEvent.ANY)
   }
   
   val selection = new ReadOnlyObjectPropertyBase[Seq[Node Either String]] { self =>
@@ -93,7 +96,7 @@ class TextSelectionSupport() {
       case tf: TextFlow => textFlowsSeq remove tf
       case other =>
     }
-  
+
   private def textFlowAt(sceneX: Double, sceneY: Double): Option[TextFlow] = textFlowsSeq.asScala.find { n =>
     val p = n.sceneToLocal(sceneX, sceneY)
     n.contains(p)
@@ -115,47 +118,71 @@ class TextSelectionSupport() {
 //            tf.getStyleClass.add("debug-region")
             val sourceEvent = lastTriggerEvent.filter(_ => evt.isShiftDown).getOrElse(evt)
             evt.getClickCount match {
-              case 2 | 3 => updateTextFlow(tf, sourceEvent, evt)
+              case 2 | 3 => updateTextFlow(tf, new Point2D(sourceEvent.getSceneX, sourceEvent.getSceneY),
+                                           new Point2D(evt.getSceneX, evt.getSceneY), sourceEvent.getClickCount)
               case _ =>
             }
+            
             selecting(sourceEvent, tf)
         }
     }
     
-    def selecting(triggerEvent: MouseEvent, lastNodeHovered: TextFlow): Transition = transition {
+    def selecting(triggerEvent: MouseEvent, originalTextFlow: TextFlow): Transition = transition {
       case Evts.MouseEvent(_, _, MouseEvent.MOUSE_RELEASED, evt) => 
 //        lastNodeHovered.getStyleClass.remove("debug-region")
         idle(Some(triggerEvent))
 
       case Evts.MouseEvent(_, _, MouseEvent.MOUSE_DRAGGED, evt) =>
-        val (startPoint, endPoint) = (triggerEvent.getSceneY - evt.getSceneY) match {
-          case 0 => if (triggerEvent.getSceneX < evt.getSceneX) (triggerEvent, evt) else (evt, triggerEvent)
-          case d if d < 0 => (triggerEvent, evt)
-          case other => (evt, triggerEvent)
+        //startPoint needs to be adapted to originalTextFlow, since after scrolling it might be off screen, nevertheless
+        //the click corresponds to that event (localX and localY)
+//        val triggerPoint = originalTextFlow.localToScene(triggerEvent.getX, triggerEvent.getY)
+        val triggerPoint = triggerEvent.getTarget.asInstanceOf[Node].localToScene(triggerEvent.getX, triggerEvent.getY)
+        val currentPoint = new Point2D(evt.getSceneX, evt.getSceneY)
+        println(triggerPoint + " - " + currentPoint)
+        val (startPoint, endPoint) = (triggerPoint.getY - currentPoint.getY) match {
+          case 0 => if (triggerPoint.getX < currentPoint.getX) (triggerPoint, currentPoint) else (currentPoint, triggerPoint)
+          case d if d < 0 => (triggerPoint, currentPoint)
+          case other => (currentPoint, triggerPoint)
         }
         
-        textFlowAt(evt.getSceneX, evt.getSceneY) match {
-          case Some(otherTextFlow) if otherTextFlow != lastNodeHovered =>
-            updateTextFlow(lastNodeHovered, startPoint, endPoint)
-            updateTextFlow(otherTextFlow, startPoint, endPoint)
-//            lastNodeHovered.getStyleClass.remove("debug-region")
-//            otherTextFlow.getStyleClass.add("debug-region")
-            selecting(triggerEvent, otherTextFlow)
-            
-          case _ =>
-            updateTextFlow(lastNodeHovered, startPoint, endPoint)
-            current
+        textFlowsSeq.asScala.foreach { textFlow =>
+          val start = textFlow.sceneToLocal(startPoint.getX, startPoint.getY)
+          val end = textFlow.sceneToLocal(endPoint.getX, endPoint.getY)
+      
+          if (textFlow.intersects(start.getX, start.getY, end.getX - start.getX, end.getY - start.getY))
+            updateTextFlow(textFlow, startPoint, endPoint, triggerEvent.getClickCount)
+          else textFlow.getChildren.asScala.headOption.collectFirst { case p: Path => p } foreach textFlow.getChildren.remove
         }
+        
+//        val textFlows = textFlowsInBetween(startPoint.getSceneX, startPoint.getSceneY, endPoint.getSceneX, endPoint.getSceneY)
+//        textFlows foreach { textFlow =>
+//          updateTextFlow(textFlow, startPoint, endPoint)
+//        }
+        current
+//        selecting(triggerEvent, textFlows.last)
+        
+//        textFlowAt(evt.getSceneX, evt.getSceneY) match {
+//          case Some(otherTextFlow) if otherTextFlow != lastNodeHovered =>
+//            updateTextFlow(lastNodeHovered, startPoint, endPoint)
+//            updateTextFlow(otherTextFlow, startPoint, endPoint)
+////            lastNodeHovered.getStyleClass.remove("debug-region")
+////            otherTextFlow.getStyleClass.add("debug-region")
+//            selecting(triggerEvent, otherTextFlow)
+//            
+//          case _ =>
+//            updateTextFlow(lastNodeHovered, startPoint, endPoint)
+//            current
+//        }
         
     }
     
-    def updateTextFlow(textFlow: TextFlow, from: MouseEvent, to: MouseEvent): Unit = {
+    def updateTextFlow(textFlow: TextFlow, from: Point2D, to: Point2D, clickCount: Int): Unit = {
       val bounds = textFlow.getBoundsInLocal
-      var fromInLocal = textFlow.sceneToLocal(from.getSceneX, from.getSceneY)
+      var fromInLocal = textFlow.sceneToLocal(from.getX, from.getY)
       //if from is negative, drag the start x to the begginning, so we select the entirety of the text
       if (fromInLocal.getY <= 0) fromInLocal = fromInLocal.subtract(fromInLocal.getX, 0)
       //same for end point
-      var toInLocal = textFlow.sceneToLocal(to.getSceneX, to.getSceneY)
+      var toInLocal = textFlow.sceneToLocal(to.getX, to.getY)
       if (toInLocal.getY >= bounds.getHeight) toInLocal = new Point2D(bounds.getWidth, toInLocal.getY)
       
       if ((fromInLocal.getY <= 0 && toInLocal.getY <= 0) || (fromInLocal.getY >= bounds.getHeight && toInLocal.getY >= bounds.getHeight)) {
@@ -163,7 +190,7 @@ class TextSelectionSupport() {
         getTextFlowHelper(textFlow).clearSelection()
       } else {
         
-        from.getClickCount match {
+        clickCount match {
           case 2 => //word selection mode, we need to detect if we are moving backwards (to < from) or forward (to > from)
             val startHitTest = textFlow hitTest fromInLocal
             val endHitTest = textFlow hitTest toInLocal

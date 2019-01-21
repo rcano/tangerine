@@ -66,14 +66,21 @@ trait StateMachine[T] extends PartialFunction[T, Unit] {
    */
   lazy val done = namedTransition("done")(PartialFunction.empty)
   
-  def subscribe[E <: Event](node: { def addEventHandler[E2 <: Event](evtType: EventType[E2], handler: EventHandler[_ >: E2]) }, eventType: EventType[E])(implicit eventEv: E <:< T): Unit = {
-    node.addEventHandler[E](eventType, evt => applyIfDefined(evt))
+  def subscribe[E <: Event](node: { def addEventHandler[E2 <: Event](evtType: EventType[E2], handler: EventHandler[_ >: E2]) }, eventType: EventType[E])(implicit eventEv: E <:< T): EventHandler[E] = {
+    val listener: EventHandler[E] = evt => applyIfDefined(evt)
+    node.addEventHandler[E](eventType, listener)
+    listener
   }
-  def subscribe[E](observable: ObservableValue[E])(implicit ev: (ObservableValue[_ <: E], E, E) <:< T): Unit = {
-    observable addListener new ChangeListener[E] {
+  def subscribe[E](observable: ObservableValue[E])(implicit ev: (ObservableValue[_ <: E], E, E) <:< T): ChangeListener[E] = {
+    val listener = new ChangeListener[E] {
       def changed(o: ObservableValue[_ <: E], oldv: E, newv: E) = applyIfDefined((o, oldv, newv))
     }
+    observable addListener listener
+    listener
   }
-  def subscribe[E](observable: ObservableList[E])(implicit eventEv: ListChangeListener.Change[_ <: E] <:< T): Unit = 
-    observable.addListener({evt => applyIfDefined(evt)}: ListChangeListener[E])
+  def subscribe[E](observable: ObservableList[E])(implicit eventEv: ListChangeListener.Change[_ <: E] <:< T): ListChangeListener[E] = {
+    val listener: ListChangeListener[E] = evt => applyIfDefined(evt)
+    observable.addListener(listener)
+    listener
+  }
 }
