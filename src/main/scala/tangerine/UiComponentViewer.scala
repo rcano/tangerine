@@ -32,7 +32,7 @@ abstract class UiComponentViewer extends Application {
       stage.getScene.getStylesheets.add(l))
     comp.setupSample()
     
-    stage.sizeToScene()
+    if (!(stage.getWidth > 0 && stage.getHeight > 0)) stage.sizeToScene()
     stage.show()
   }
 }
