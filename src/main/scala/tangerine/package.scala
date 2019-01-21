@@ -92,4 +92,10 @@ object `package` {
   }
   
   def Margin(top: Double = 0, right: Double = 0, bot: Double = 0, left: Double = 0) = new Insets(top, right, bot, left)
+  
+  
+  implicit class ColorExt(val c: javafx.scene.paint.Color) extends AnyVal {
+    def colorToWeb = "#%02X%02X%02X".format((c.getRed * 255).toInt, (c.getGreen * 255).toInt, (c.getBlue * 255).toInt)
+    def toArgb = (c.getOpacity * 255).toInt << 24 | (c.getRed * 255).toInt << 16 | (c.getGreen * 255).toInt << 8 | (c.getBlue * 255).toInt
+  }
 }
