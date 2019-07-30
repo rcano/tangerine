@@ -1,11 +1,11 @@
 name := "tangerine"
 version := "1.0.0"
 
-ThisBuild / scalaVersion := "2.12.7"
+ThisBuild / scalaVersion := "2.13.0"
 
 fork := true
 
-lazy val jfxVersion = "11"
+lazy val jfxVersion = "12.0.1"
 lazy val jfxClassifier = settingKey[String]("jfxClassifier")
 jfxClassifier := {
   if (scala.util.Properties.isWin) "win"
@@ -15,18 +15,18 @@ jfxClassifier := {
 }
 
 libraryDependencies ++= Seq(
-  "com.lihaoyi" %% "sourcecode" % "0.1.5",
+  "com.lihaoyi" %% "sourcecode" % "0.1.7",
 
-  "com.github.pathikrit" %% "better-files" % "3.6.0",
-  "com.beachape" %% "enumeratum" % "1.5.13",
+  "com.github.pathikrit" %% "better-files" % "3.8.0",
+  //"com.beachape" %% "enumeratum" % "1.5.13",
 
   "org.openjfx" % "javafx-graphics" % jfxVersion % "provided" classifier jfxClassifier.value,
   "org.openjfx" % "javafx-controls" % jfxVersion % "provided" classifier jfxClassifier.value,
   "org.openjfx" % "javafx-base" % jfxVersion % "provided" classifier jfxClassifier.value,
   
-  "org.controlsfx" % "controlsfx" % "9.0.0" % "provided",
-
+  "org.controlsfx" % "controlsfx" % "11.0.0" % "provided",
 )
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
 lazy val moduleJars = taskKey[Seq[(Attributed[File], java.lang.module.ModuleDescriptor)]]("moduleJars")
 moduleJars := {

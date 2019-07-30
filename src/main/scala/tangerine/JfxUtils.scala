@@ -186,7 +186,6 @@ object JfxUtils {
         case t: ToolBar => t.getItems.removeListener(childrenChangeListener)
         case b: ButtonBar => b.getButtons.removeListener(childrenChangeListener)
         case p: Parent => p.getChildrenUnmodifiable.removeListener(childrenChangeListener)
-        case p: Parent => p.getChildrenUnmodifiable.removeListener(childrenChangeListener)
         case _ =>
       }
       override def cancel = unregister(node)

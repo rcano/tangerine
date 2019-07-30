@@ -7,8 +7,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files , StandardWatchEventKinds, FileVisitor, FileVisitResult, Path, Paths, WatchEvent}
 import javafx.application.Application
 import javafx.application.Platform
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
+import scala.util.chaining._
 
 /**
  * Main application used during developement for hot reloading of the application using classloaders magic.
@@ -23,7 +24,7 @@ object DevAppReloader {
 }
 class DevAppReloader extends Application {
   def sceneRoot = null
-  val classesDirectories = Array(Paths.get("target/scala-2.12/classes"), Paths.get("target/scala-2.12/test-classes")).filter(Files.exists(_)).map(_.toAbsolutePath)
+  val classesDirectories = Array(Paths.get("target/scala-2.13/classes"), Paths.get("target/scala-2.13/test-classes")).filter(Files.exists(_)).map(_.toAbsolutePath)
   override def init(): Unit = {
     super.init()
     //install a monitor on the classes to detect a change

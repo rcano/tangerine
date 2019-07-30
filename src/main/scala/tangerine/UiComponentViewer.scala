@@ -4,7 +4,7 @@ import javafx.application.Application
 import javafx.scene.Scene
 import javafx.scene.layout.StackPane
 import javafx.stage.Stage
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
 
 /**
@@ -22,7 +22,7 @@ abstract class UiComponentViewer extends Application {
     val thisClassName = getClass.getCanonicalName
     val uiCompClass = 
       getParameters.getUnnamed.asScala match {
-        case Seq(`thisClassName`, className) => className
+        case collection.Seq(`thisClassName`, className) => className
         case _ => throw new IllegalArgumentException("The viewer is meant to be used with DevAppReloader") with NoStackTrace
       }
     stage setTitle s"UiComponentViewer: $uiCompClass"

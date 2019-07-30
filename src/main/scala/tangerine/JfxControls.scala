@@ -11,6 +11,7 @@ import javafx.scene.layout._
 import javafx.scene.control._
 import javafx.stage.FileChooser
 import javafx.util.StringConverter
+import scala.util.chaining._
 
 /**
  * T collection of useful and reusable controls are defined in this object

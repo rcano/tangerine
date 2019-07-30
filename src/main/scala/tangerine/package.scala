@@ -8,7 +8,8 @@ import javafx.collections.transformation.TransformationList
 import javafx.geometry.Insets
 import javafx.scene.control._
 import javafx.scene.text.Font
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
+import scala.util.chaining._
 
 object `package` {
 
@@ -21,14 +22,6 @@ object `package` {
     @inline def foreach(f: T => Unit): Unit = property.addListener((_: t forSome {type t >: T}, _, v) => f(v))
     @inline def map[U](f: T => U)(implicit bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property)(_ => f(property.getValue))
     @inline def zip[T2](t2: ObservableValue[T2]) = Properties.Binding(property, t2)(_ => (property.getValue, t2.getValue))
-  }
-  
-  implicit final class ChainingOps[T](private val self: T) extends AnyVal {
-    @inline def pipe[R](f: T => R): R = f(self)
-    @inline def tap(f: T => Any): T = {
-      f(self)
-      self
-    }
   }
   
   implicit class ObservableListExt[T](private val list: ObservableList[T]) extends AnyVal {
@@ -75,7 +68,7 @@ object `package` {
   }
   
   object HasChildren {
-    def unapplySeq(n: Node): Option[Seq[Node]] = n match {
+    def unapplySeq(n: Node): Option[collection.Seq[Node]] = n match {
       case s: ScrollPane => Some(Seq(s.getContent))
       case t: TabPane => Some(t.getTabs.asScala.map(_.getContent))
       case l: Labeled => Some(Seq(l.getGraphic))
