@@ -28,7 +28,7 @@ class TextSelectionSupport() {
   
   def this(n: Node) = {
     this()
-    rootNode set n
+    rootNode `set` n
   }
   
   val rootNode = new SimpleObjectProperty[Node](this, "rootNode")
@@ -71,8 +71,8 @@ class TextSelectionSupport() {
   
   val selection = new ReadOnlyObjectPropertyBase[collection.Seq[Node Either String]] { self =>
     val changeListener = new ChangeListener[Number] with ListChangeListener[TextFlow] {
-      override def changed(prop: ObservableValue[_ <: Number], oldv: Number, newv: Number) = self.fireValueChangedEvent()
-      override def onChanged(evt: ListChangeListener.Change[_ <: TextFlow]) = {
+      override def changed(prop: ObservableValue[? <: Number], oldv: Number, newv: Number) = self.fireValueChangedEvent()
+      override def onChanged(evt: ListChangeListener.Change[? <: TextFlow]) = {
         while (evt.next) {
           evt.getAddedSubList.asScala foreach { tf => 
             getTextFlowHelper(tf).selectionStart.addListener(this)
@@ -109,16 +109,16 @@ class TextSelectionSupport() {
     tangerine.JfxUtils.traverseBreadthFirst(rootNode).foreach { 
       case tf: TextFlow => 
         installTextFlowHelper(tf)
-        layoutTracker track tf
-        textFlowsSeq add tf
+        layoutTracker `track` tf
+        textFlowsSeq `add` tf
       case other =>
     }
   }
   private def unregisterTextFlowsIn(rootNode: Node) = 
     tangerine.JfxUtils.traverseBreadthFirst(rootNode).foreach { 
       case tf: TextFlow => 
-        layoutTracker remove tf
-        textFlowsSeq remove tf
+        layoutTracker `remove` tf
+        textFlowsSeq `remove` tf
       case other =>
     }
 
@@ -211,8 +211,8 @@ class TextSelectionSupport() {
         
         clickCount match {
           case 2 => //word selection mode, we need to detect if we are moving backwards (to < from) or forward (to > from)
-            val startHitTest = textFlow hitTest fromInLocal
-            val endHitTest = textFlow hitTest toInLocal
+            val startHitTest = textFlow `hitTest` fromInLocal
+            val endHitTest = textFlow `hitTest` toInLocal
             //we need to detect the word at startHit and endHit and make sure they are inside the selection
             val helper = getTextFlowHelper(textFlow)
             
@@ -233,13 +233,13 @@ class TextSelectionSupport() {
           case 3 => //line selection mode, we simply map the mouse x coordinate to the bounds of the flow
             fromInLocal = fromInLocal.subtract(fromInLocal.getX, 0)
             toInLocal = toInLocal.add(bounds.getWidth, 0)
-            val startHitTest = textFlow hitTest fromInLocal
-            val endHitTest = textFlow hitTest toInLocal
+            val startHitTest = textFlow `hitTest` fromInLocal
+            val endHitTest = textFlow `hitTest` toInLocal
             getTextFlowHelper(textFlow).select(startHitTest.getCharIndex, endHitTest.getCharIndex)
             
           case _ => //normal selection mode
-            val startHitTest = textFlow hitTest fromInLocal
-            val endHitTest = textFlow hitTest toInLocal
+            val startHitTest = textFlow `hitTest` fromInLocal
+            val endHitTest = textFlow `hitTest` toInLocal
             getTextFlowHelper(textFlow).select(startHitTest.getCharIndex, endHitTest.getCharIndex)
             
         }
@@ -283,7 +283,7 @@ class TextSelectionSupport() {
         case t: Text => Right(t)
         case n: Node => Left(n)
       }
-      Binding(nodes.collect { case Right(t) => t}.map(_.textProperty):_*) { _ => 
+      Binding(nodes.collect { case Right(t) => t}.map(_.textProperty)*) { _ => 
         clearSelection() //texts inside change, so clear the entire selection.
         //ignore unmanaged nodes
         nodes.filter(_.merge.isManaged).foldLeft((0 -> TreeMap.empty[Int, Node Either Text])) {
@@ -299,9 +299,9 @@ class TextSelectionSupport() {
     
     def select(from: Int, to: Int): Unit = {
       val shape = tf.rangeShape(from, to)
-      getOrCreateSelectionShape(tf).getElements.setAll(shape:_*)
-      selectionStart set from
-      selectionEnd set to
+      getOrCreateSelectionShape(tf).getElements.setAll(shape*)
+      selectionStart `set` from
+      selectionEnd `set` to
     }
     def clearSelection(): Unit = {
       getOrCreateSelectionShape(tf).getElements.clear()
@@ -348,7 +348,7 @@ class TextSelectionSupport() {
 
     var toUpdate = collection.mutable.HashSet.empty[Parent]
     def boundsListener(node: Parent): ChangeListener[Bounds] = new ChangeListener[Bounds]() {
-      def changed(obs: ObservableValue[_ <: Bounds], oldv: Bounds, newv: Bounds) = {
+      def changed(obs: ObservableValue[? <: Bounds], oldv: Bounds, newv: Bounds) = {
         val rn = rootNode.get
 
         Iterator.iterate(node)(_.getParent).takeWhile(p => p != null && p != rn).find(p => !toUpdate(p)) match {
@@ -361,7 +361,7 @@ class TextSelectionSupport() {
 //            println(s"${Console.GREEN} detected $changed ${Console.RESET}")
 
             //we schedule recalculation of layouts to happen after this javafx pulse so that we ensure all layout processing has finished
-            if (toUpdate.sizeIs == 1) Platform.runLater(recalculateLayouts _)
+            if (toUpdate.sizeIs == 1) Platform.runLater((() => recalculateLayouts()))
 
           case _ =>
         }
@@ -375,6 +375,7 @@ class TextSelectionSupport() {
         node <- toUpdate
         tf <- JfxUtils.traverseDepthFirst(node).collect { case tf: TextFlow => tf }
       } {
+        JfxUtils.debugFlash(tf, Color.AQUAMARINE)
         val location = tf.localToScene(0, 0).pipe(rootNode.get.sceneToLocal)
         textflowLocations(tf) = location
         getTextFlowHelper(tf)

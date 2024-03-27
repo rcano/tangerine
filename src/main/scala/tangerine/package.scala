@@ -1,5 +1,3 @@
-package tangerine
-
 import javafx.beans.value.ObservableValue
 import javafx.scene.{Node, Parent}
 import javafx.collections.ListChangeListener
@@ -11,17 +9,16 @@ import javafx.scene.text.Font
 import scala.jdk.CollectionConverters._
 import scala.util.chaining._
 
-object `package` {
+package object tangerine {
 
   implicit class EmUnits(private val unit: Double) extends AnyVal {
     @inline def em = Font.getDefault.getSize * unit
   }
   
-  implicit class ObservableValueExt[T](private val property: ObservableValue[T]) extends AnyVal {
-    import language.existentials
-    @inline def foreach(f: T => Unit): Unit = property.addListener((_: t forSome {type t >: T}, _, v) => f(v))
-    @inline def map[U](f: T => U)(implicit bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property)(_ => f(property.getValue))
-    @inline def zip[T2](t2: ObservableValue[T2]) = Properties.Binding(property, t2)(_ => (property.getValue, t2.getValue))
+  extension [T](property: ObservableValue[T]) {
+    inline def foreach(f: T => Unit): Unit = property.addListener((_, _, c) => f(c))
+    inline def map[U](f: T => U)(using bindingSelector: BindingTypeSelector[U]): bindingSelector.BindingType = bindingSelector.bind(property)(_ => f(property.getValue))
+    inline def zip[T2](t2: ObservableValue[T2]) = Properties.Binding(property, t2)(_ => (property.getValue, t2.getValue))
   }
   
   implicit class ObservableListExt[T](private val list: ObservableList[T]) extends AnyVal {
@@ -44,7 +41,7 @@ object `package` {
       override def size() = list.size
       override def getSourceIndex(i: Int) = i
       override def getViewIndex(i: Int) = i
-      override protected def sourceChanged(evt: ListChangeListener.Change[_ <: T]) = {
+      override protected def sourceChanged(evt: ListChangeListener.Change[? <: T]) = {
         while (evt.next) {
           if (evt.wasPermutated || evt.wasUpdated) { for (i <- evt.getFrom until evt.getTo) cache -= i }
           if (evt.wasRemoved) evt.getRemoved.forEach { e => reverseIndex.remove(e) foreach (cache -= _) }
@@ -61,7 +58,7 @@ object `package` {
       override def size() = list.size
       override def getSourceIndex(i: Int) = i
       override def getViewIndex(i: Int) = i
-      override protected def sourceChanged(evt: ListChangeListener.Change[_ <: T]) = {
+      override protected def sourceChanged(evt: ListChangeListener.Change[? <: T]) = {
         
       }
     }

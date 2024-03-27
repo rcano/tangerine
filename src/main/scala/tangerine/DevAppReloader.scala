@@ -19,7 +19,7 @@ object DevAppReloader {
   def main(args: Array[String]) = {
     System.setProperty("prism.lcdtext", "false")
     System.setProperty("prism.text", "t2k")
-    Application.launch(classOf[DevAppReloader], args:_*)
+    Application.launch(classOf[DevAppReloader], args*)
   }
 }
 class DevAppReloader extends Application {
@@ -82,7 +82,7 @@ class DevAppReloader extends Application {
 
   var reloadCounter = 0
   @volatile var recompiling = false
-  var lastApplication: Application = _
+  var lastApplication: Application = scala.compiletime.uninitialized
   def reloadApp(): Unit = {
     if (!recompiling) { // if I'm already recompiling, ignore the request. This might happen if the watcher thread detects many file changing in quick not not so quick intervals
       reloadCounter += 1
@@ -91,7 +91,7 @@ class DevAppReloader extends Application {
 
       val classLoadingMxBean = java.lang.management.ManagementFactory.getClassLoadingMXBean()
       println("currently loaded classes " + classLoadingMxBean.getLoadedClassCount)
-      Platform runLater new Runnable {
+      Platform `runLater` new Runnable {
         def run: Unit = {
           //is there was an application, we need to dispose of it first
           if (lastApplication != null) {
@@ -110,8 +110,8 @@ class DevAppReloader extends Application {
           println(classesDirectories.mkString("Root urls:[\n", "\n", "\n]"))
           val loader = new URLClassLoader(classesDirectories.map(_.toAbsolutePath.toUri.toURL).toArray) {
             //override default class loader behaviour to prioritize classes in this classloader
-            override def loadClass(name: String, resolve: Boolean): Class[_] = {
-              var res: Class[_] = findLoadedClass(name)
+            override def loadClass(name: String, resolve: Boolean): Class[?] = {
+              var res: Class[?] = findLoadedClass(name)
               val startTime = System.currentTimeMillis
               while (res == null && System.currentTimeMillis - startTime < 60000) {//will retry for an entire minute for this class to appear
                 try res = findClass(name)
@@ -131,14 +131,14 @@ class DevAppReloader extends Application {
           try {
             lastApplication.init()
             lastApplication.start(primaryStage)
-          } catch { case NonFatal(e) => println("starting application failed"); e.printStackTrace() }
+         } catch { case NonFatal(e) => println("starting application failed"); e.printStackTrace() }
           recompiling = false
         }
       }
     }
   }
 
-  var primaryStage: javafx.stage.Stage = _
+  var primaryStage: javafx.stage.Stage = scala.compiletime.uninitialized
   override def start(stage: javafx.stage.Stage): Unit = {
     primaryStage = stage
     Platform.setImplicitExit(true)

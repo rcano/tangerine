@@ -25,12 +25,12 @@ class SimpleUndoManager(wallClock: Clock = Clock.systemDefaultZone) {
     res
   }
   def redo(): Unit = if (_redoQueue != Nil) {
-    val head :: tail = _redoQueue
+    val head :: tail = _redoQueue: @unchecked
     _redoQueue = tail
     `do`(head)
   }
   def undo(): Unit = if (_undoQueue != Nil) {
-    val elem :: rest = _undoQueue
+    val elem :: rest = _undoQueue: @unchecked
     _actionsLog ::= s"${wallClock.instant} undoing $elem"
     _undoQueue = rest
     _redoQueue ::= elem

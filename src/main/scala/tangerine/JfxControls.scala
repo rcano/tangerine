@@ -23,9 +23,9 @@ object JfxControls {
    * styled with class `titled`.
    */
   def titled(title: Node, content: Node): BorderPane = new BorderPane().tap { it =>
-    it setTop title.tap(BorderPane.setMargin(_, new Insets(0, 0, 0.5.em, 0)))
-    it setCenter content
-    it.getStyleClass add "titled"
+    it `setTop` title.tap(BorderPane.setMargin(_, new Insets(0, 0, 0.5.em, 0)))
+    it `setCenter` content
+    it.getStyleClass `add` "titled"
   }
   
   /**
@@ -36,7 +36,7 @@ object JfxControls {
    * @param fillHeight see [[javafx.scene.layout.HBox#setFillHeight]].
    * @return a HBox configured with the passed in parameters and the passed in nodes.
    */
-  def hbox(nodes: Node*)(alignment: Pos, spacing: Double = 0.25.em, fillHeight: Boolean = false): HBox = new HBox(nodes:_*).tap { it =>
+  def hbox(nodes: Node*)(alignment: Pos, spacing: Double = 0.25.em, fillHeight: Boolean = false): HBox = new HBox(nodes*).tap { it =>
     it.setAlignment(alignment)
     it.setSpacing(spacing)
     it.setFillHeight(fillHeight)
@@ -49,7 +49,7 @@ object JfxControls {
    * @param fillWidth see [[javafx.scene.layout.VBox#setFillWidth]].
    * @return a VBox configured with the passed in parameters and the passed in nodes.
    */
-  def vbox(nodes: Node*)(alignment: Pos, spacing: Double = 0.25.em, fillWidth: Boolean = false): VBox = new VBox(nodes:_*).tap { it =>
+  def vbox(nodes: Node*)(alignment: Pos, spacing: Double = 0.25.em, fillWidth: Boolean = false): VBox = new VBox(nodes*).tap { it =>
     it.setAlignment(alignment)
     it.setSpacing(spacing)
     it.setFillWidth(fillWidth)
@@ -68,7 +68,7 @@ object JfxControls {
    * @return T normal [[Label]] with its text property bound to the passed text.
    *         This method should be used with UiLocalization
    */
-  def label(text: ObservableStringValue): Label = new Label().tap(_.textProperty bind text)
+  def label(text: ObservableStringValue): Label = new Label().tap(_.textProperty `bind` text)
   
   /**
    * Traditional text field + filechooser button combo in a horizontal row
@@ -98,7 +98,7 @@ object JfxControls {
       fileChooser.setInitialFileName(pathTextField.getText)
       fileChooser.showOpenDialog(getScene.getWindow) match {
         case null =>
-        case file => selectedFile set Some(file.toScala)
+        case file => selectedFile `set` Some(file.toScala)
       }
     }
   }
@@ -126,13 +126,13 @@ object JfxControls {
         for (button <- faces) {
           button.addEventFilter[ActionEvent](ActionEvent.ACTION, _ => {
               val nextButton = transitions(button)
-              currentFace set nextButton
-              it.getChildren setAll nextButton
+              currentFace `set` nextButton
+              it.getChildren `setAll` nextButton
               nextButton.requestFocus() //the button that we just removed had the focus, so we now pass it on to this button
             })
         }
-        currentFace.addListener((_, _, b) => it.getChildren setAll b)
-        it.getChildren setAll initFace
+        currentFace.addListener((_, _, b) => it.getChildren `setAll` b)
+        it.getChildren `setAll` initFace
       }
     }
   }

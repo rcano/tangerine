@@ -6,6 +6,9 @@ import javafx.collections.ListChangeListener
 import javafx.geometry.Bounds
 import javafx.scene.{Node, Scene, Parent}
 import javafx.scene.control._
+import javafx.scene.layout.Region
+import javafx.scene.paint.Color
+import javafx.scene.paint.Paint
 import javafx.scene.text.{Font, Text}
 import javafx.stage.Window
 
@@ -37,8 +40,8 @@ object JfxUtils {
   /**
    * Creates a [[ChangeListener]] that gets executed once and then unregisters itself.
    */
-  def onceChangeListener[T](f: (T, T) => Any): ChangeListener[_ >: T] = new ChangeListener[T] {
-    def changed(obs: ObservableValue[_ <: T], oldv: T, newv: T) = {
+  def onceChangeListener[T](f: (T, T) => Any): ChangeListener[? >: T] = new ChangeListener[T] {
+    def changed(obs: ObservableValue[? <: T], oldv: T, newv: T) = {
       f(oldv, newv)
       obs.removeListener(this)
     }
@@ -46,7 +49,7 @@ object JfxUtils {
   
   
   /* unique object key used to map the showing property to Nodes*/
-  private[this] object showingPropertyKey
+  private object showingPropertyKey
   
   /**
    * Provides a showing property for a Node and cache it inside the Node properties.
@@ -58,8 +61,8 @@ object JfxUtils {
     var property = node.getProperties.get(showingPropertyKey).asInstanceOf[ObservableBooleanValue]
     if (property == null) {
       property = new BooleanBinding {
-        var scene: Scene = _
-        var window: Window = _
+        var scene: Scene = scala.compiletime.uninitialized
+        var window: Window = scala.compiletime.uninitialized
         bind(node.sceneProperty)
         onInvalidating()
       
@@ -111,7 +114,7 @@ object JfxUtils {
     //taken from http://fxexperience.com/2016/01/node-picking-in-javafx/
     val p = node.sceneToLocal(sceneX, sceneY)
     
-    if (node contains p) {
+    if (node `contains` p) {
       node match {
         case HasChildren(children@_*) =>
           // we iterate through all children in reverse order, and stop when we find a match.
@@ -153,11 +156,11 @@ object JfxUtils {
    * @param listener function to be called on each change
    * @return the Registered synthethized listener. You'll need this listener if you wish to unregister from the underlying graph.
    */
-  def registerGraphStructureListener(node: Node)(listener: ListChangeListener.Change[_ <: Node] => Unit): StructureListenerRegistration = {
+  def registerGraphStructureListener(node: Node)(listener: ListChangeListener.Change[? <: Node] => Unit): StructureListenerRegistration = {
     object registration extends StructureListenerRegistration {
       val childrenChangeListener: ListChangeListener[Node] = evt => while (evt.next) {
-        evt.getAddedSubList forEach register
-        evt.getRemoved forEach unregister
+        evt.getAddedSubList `forEach` register
+        evt.getRemoved `forEach` unregister
         listener(evt)
       }
       val nodeChangeListener: ChangeListener[Node] = (_, prev, newv) => {
@@ -165,8 +168,8 @@ object JfxUtils {
         register(newv)
       }
       val tabsChangeListener: ListChangeListener[Tab] = evt => while(evt.next) {
-        evt.getAddedSubList forEach (t => register(t.getContent))
-        evt.getRemoved forEach (t => unregister(t.getContent))
+        evt.getAddedSubList `forEach` (t => register(t.getContent))
+        evt.getRemoved `forEach` (t => unregister(t.getContent))
       }
       def register(n: Node): Unit = traverseDepthFirst(n) foreach {
         case s: ScrollPane => s.contentProperty.addListener(nodeChangeListener)
@@ -188,7 +191,7 @@ object JfxUtils {
         case p: Parent => p.getChildrenUnmodifiable.removeListener(childrenChangeListener)
         case _ =>
       }
-      override def cancel = unregister(node)
+      override def cancel(): Unit = unregister(node)
     }
     registration.register(node)
     registration
@@ -196,5 +199,24 @@ object JfxUtils {
   
   trait StructureListenerRegistration {
     def cancel(): Unit
+  }
+
+  def debugFlash(r: Region, c: Paint): Unit = {
+    import javafx.animation._, javafx.scene.layout._
+    import javafx.util.Duration
+
+    val prevColor = r.getProperties.get(this) match {
+      case null => Option(r.getBackground).getOrElse(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Margin())))
+      case (t: Timeline, prevBck: Background) =>
+        t.stop()
+        prevBck
+    }
+
+    val timeline = new Timeline(
+      new KeyFrame(Duration.ZERO, new KeyValue(r.backgroundProperty, new Background(new BackgroundFill(c, CornerRadii.EMPTY, Margin())))),
+      new KeyFrame(Duration.seconds(1), evt => r.getProperties.remove(this), new KeyValue(r.backgroundProperty, prevColor)),
+    )
+    r.getProperties.put(this, (timeline, prevColor))
+    timeline.play()
   }
 }

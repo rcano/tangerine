@@ -8,7 +8,7 @@ import javafx.scene.control.{ListView, TextInputControl}
 import javafx.scene.input.{KeyEvent, KeyCode}
 import javafx.stage.{Popup, PopupWindow}
 import javafx.util.Duration
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Implements an auto completer for arbitrary text inputs.
@@ -25,13 +25,13 @@ object AutoCompleter {
     completionProvider: (FullText, Word, IndexInText) => Seq[String]): Instance = {
     
     val completionPopup = new Popup()
-    completionPopup setAnchorLocation PopupWindow.AnchorLocation.WINDOW_BOTTOM_LEFT
-    completionPopup setHideOnEscape true
-    completionPopup setAutoHide true
-    completionPopup setWidth textInput.getWidth
-    textInput.widthProperty foreach (n => completionPopup.setWidth(n.doubleValue))
+    completionPopup `setAnchorLocation` PopupWindow.AnchorLocation.WINDOW_BOTTOM_LEFT
+    completionPopup `setHideOnEscape` true
+    completionPopup `setAutoHide` true
+    completionPopup `setWidth` textInput.getWidth
+    textInput.widthProperty `foreach` (n => completionPopup.setWidth(n.doubleValue))
     val completionList = new ListView[String]
-    completionList.prefWidthProperty bind textInput.widthProperty
+    completionList.prefWidthProperty `bind` textInput.widthProperty
     completionPopup.getContent.add(completionList)
     
     var completionForWord: Word = null
@@ -41,7 +41,7 @@ object AutoCompleter {
         if (textInput.getLength == 0 || pos == 0) Seq.empty
         else {
           val prefixText = textInput.getText(0, pos)
-          if (prefixText.substring(pos -1) matches "\\s") Seq.empty
+          if (prefixText.substring(pos -1) `matches` "\\s") Seq.empty
           else {
             completionForWord = prefixText.split("\\s").last
             completionProvider(textInput.getText, completionForWord, pos)
@@ -51,8 +51,8 @@ object AutoCompleter {
 
       completionList.getItems.clear()
       if (items.nonEmpty) {
-        completionList.getItems.addAll(items:_*)
-        completionPopup setHeight completionList.getPrefHeight
+        completionList.getItems.addAll(items*)
+        completionPopup `setHeight` completionList.getPrefHeight
         val point = textInput.localToScreen(0, 0)
         completionPopup.show(textInput, point.getX, point.getY)
       } else completionPopup.hide()
@@ -85,13 +85,13 @@ object AutoCompleter {
     }
     
     textInput.addEventFilter(KeyEvent.KEY_RELEASED, tabKeyFilter)
-    textInput.textProperty addListener textChangeListener
-    textInput.focusedProperty addListener focusChangeListener
+    textInput.textProperty `addListener` textChangeListener
+    textInput.focusedProperty `addListener` focusChangeListener
     
     new Instance(completionPopup, completionList, () => {
         textInput.removeEventFilter(KeyEvent.KEY_RELEASED, tabKeyFilter)
-        textInput.textProperty removeListener textChangeListener
-        textInput.focusedProperty removeListener focusChangeListener
+        textInput.textProperty `removeListener` textChangeListener
+        textInput.focusedProperty `removeListener` focusChangeListener
       })
   }
   

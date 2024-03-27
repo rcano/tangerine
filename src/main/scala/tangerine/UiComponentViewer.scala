@@ -25,9 +25,9 @@ abstract class UiComponentViewer extends Application {
         case collection.Seq(`thisClassName`, className) => className
         case _ => throw new IllegalArgumentException("The viewer is meant to be used with DevAppReloader") with NoStackTrace
       }
-    stage setTitle s"UiComponentViewer: $uiCompClass"
+    stage `setTitle` s"UiComponentViewer: $uiCompClass"
     val comp = getClass.getClassLoader.loadClass(uiCompClass).getDeclaredConstructor().newInstance().asInstanceOf[UiComponent]
-    stage setScene new Scene(new StackPane(comp.component))
+    stage `setScene` new Scene(new StackPane(comp.component))
     scala.util.Properties.propOrNone("uicomponentviewer.css.path") foreach (l =>
       stage.getScene.getStylesheets.add(l))
     comp.setupSample()

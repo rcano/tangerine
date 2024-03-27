@@ -13,7 +13,7 @@ object Properties {
     def =!=(v: ObservableBooleanValue) = e.isNotEqualTo(v)
     def &&(v: ObservableBooleanValue) = e.and(v)
     def ||(v: ObservableBooleanValue) = e.or(v)
-    def unary_!() = e.not()
+    def unary_! = e.not()
   }
   
   /*
@@ -104,7 +104,7 @@ object Properties {
     @inline def <=(v: ObservableNumberValue) = e.greaterThanOrEqualTo(v)
     @inline def >=(v: ObservableNumberValue) = e.lessThanOrEqualTo(v)
 
-    @inline def unary_-(v: Int) = e.negate()
+    @inline def unary_- = e.negate()
   }
   implicit class LongExpressionExt(private val e: LongExpression) extends AnyVal {
     @inline def +(v: Int) = e.add(v)
@@ -162,7 +162,7 @@ object Properties {
     @inline def <=(v: ObservableNumberValue) = e.greaterThanOrEqualTo(v)
     @inline def >=(v: ObservableNumberValue) = e.lessThanOrEqualTo(v)
 
-    @inline def unary_-(v: Long) = e.negate()
+    @inline def unary_- = e.negate()
   }
   implicit class FloatExpressionExt(private val e: FloatExpression) extends AnyVal {
     @inline def +(v: Int) = e.add(v)
@@ -220,7 +220,7 @@ object Properties {
     @inline def <=(v: ObservableNumberValue) = e.greaterThanOrEqualTo(v)
     @inline def >=(v: ObservableNumberValue) = e.lessThanOrEqualTo(v)
 
-    @inline def unary_-(v: Float) = e.negate()
+    @inline def unary_- = e.negate()
   }
   
   implicit class DoubleExpressionExt(private val e: DoubleExpression) extends AnyVal {
@@ -279,7 +279,7 @@ object Properties {
     @inline def <=(v: ObservableNumberValue) = e.greaterThanOrEqualTo(v)
     @inline def >=(v: ObservableNumberValue) = e.lessThanOrEqualTo(v)
 
-    @inline def unary_-(v: Double) = e.negate()
+    @inline def unary_- = e.negate()
   }
   
   
@@ -317,11 +317,11 @@ object Properties {
     def >=(v: ObservableStringValue) = e.greaterThanOrEqualTo(v)
 
     // Kind of an odd case that concat is not observable, but this is how it is coded in JavaFX
-    def + = concat _
+    def + = concat
 
     def concat(v: Any) = e.concat(v)
   }
   
-  def Binding[T](values: ObservableValue[_]*)(compute: Binding[_] => T)(implicit bindingSelector: BindingTypeSelector[T]): bindingSelector.BindingType = 
-    bindingSelector.bind(values:_*)(compute)
+  def Binding[T](values: ObservableValue[?]*)(compute: Binding[?] => T)(implicit bindingSelector: BindingTypeSelector[T]): bindingSelector.BindingType = 
+    bindingSelector.bind(values*)(compute)
 }
