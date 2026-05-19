@@ -14,13 +14,12 @@ import javafx.geometry.Point2D
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.input.{MouseButton, MouseEvent}
-import javafx.scene.layout.Region
 import javafx.scene.paint.{Color, Paint}
 import javafx.scene.shape.Path
 import javafx.scene.text.{Text, TextFlow}
 import scala.collection.immutable.TreeMap
-import scala.jdk.CollectionConverters._
-import scala.util.chaining._
+import scala.jdk.CollectionConverters.*
+import scala.util.chaining.*
 import tangerine.{EventMatchers => Evts}
 import Properties.Binding
 
@@ -34,16 +33,15 @@ class TextSelectionSupport() {
   val rootNode = new SimpleObjectProperty[Node](this, "rootNode")
   val selectionBackground = new SimpleObjectProperty[Paint](this, "selectionBackground", Color.DODGERBLUE)
   private val textFlowsSeq = FXCollections.observableArrayList[TextFlow]()
+
+  private given Ordering[Point2D] = Ordering.by(p => (p.getY(), p.getX()))
   
   private object textflowLocations {
-    val direct = collection.mutable.SortedMap.empty[Point2D, TextFlow]((a, b) => a.getY - b.getY match {
-        case 0 => (a.getX - b.getX).toInt
-        case o => o.toInt
-      })
+    val direct = collection.mutable.SortedMap.empty[Point2D, TextFlow]
     val inverse = collection.mutable.Map.empty[TextFlow, Point2D]
 
     def update(tf: TextFlow, location: Point2D): Unit = {
-      inverse.remove(tf) foreach direct.-
+      inverse.remove(tf) foreach direct.-=
       direct(location) = tf
       inverse(tf) = location
     }
@@ -98,7 +96,7 @@ class TextSelectionSupport() {
       startOffset = helper.selectionStart.get
       endOffset = helper.selectionEnd.get
       if helper.selectionStart.get != -1
-      (offset, node) <- helper.layout.range(helper.layout.to(startOffset).lastKey, endOffset)
+      (offset, node) <- helper.layout.range(helper.layout.rangeTo(startOffset).lastKey, endOffset)
     } yield node match {
       case Left(node) => Left(node)
       case Right(text) => Right(text.getText.substring((startOffset - offset).max(0), (endOffset - offset).min(text.getText.length)))
@@ -111,7 +109,7 @@ class TextSelectionSupport() {
         installTextFlowHelper(tf)
         layoutTracker `track` tf
         textFlowsSeq `add` tf
-      case other =>
+      case _ =>
     }
   }
   private def unregisterTextFlowsIn(rootNode: Node) = 
@@ -119,7 +117,7 @@ class TextSelectionSupport() {
       case tf: TextFlow => 
         layoutTracker `remove` tf
         textFlowsSeq `remove` tf
-      case other =>
+      case _ =>
     }
 
   private def textFlowAt(sceneX: Double, sceneY: Double): Option[TextFlow] = {
@@ -163,7 +161,7 @@ class TextSelectionSupport() {
     }
     
     def selecting(triggerEvent: MouseEvent, previousTargets: Iterable[TextFlow]): Transition = transition {
-      case Evts.MouseEvent(_, _, MouseEvent.MOUSE_RELEASED, evt) => 
+      case Evts.MouseEvent(_, _, MouseEvent.MOUSE_RELEASED, _) => 
         idle(Some(triggerEvent))
 
       case Evts.MouseEvent(_, _, MouseEvent.MOUSE_DRAGGED, evt) =>
@@ -174,7 +172,7 @@ class TextSelectionSupport() {
         val (startPoint, endPoint) = (triggerPoint.getY - currentPoint.getY) match {
           case 0 => if (triggerPoint.getX < currentPoint.getX) (triggerPoint, currentPoint) else (currentPoint, triggerPoint)
           case d if d < 0 => (triggerPoint, currentPoint)
-          case other => (currentPoint, triggerPoint)
+          case _ => (currentPoint, triggerPoint)
         }
 
         val alreadyProcessed = collection.mutable.HashSet.empty[TextFlow]
@@ -211,8 +209,8 @@ class TextSelectionSupport() {
         
         clickCount match {
           case 2 => //word selection mode, we need to detect if we are moving backwards (to < from) or forward (to > from)
-            val startHitTest = textFlow `hitTest` fromInLocal
-            val endHitTest = textFlow `hitTest` toInLocal
+            val startHitTest = textFlow.getHitInfo(fromInLocal)
+            val endHitTest = textFlow.getHitInfo(toInLocal)
             //we need to detect the word at startHit and endHit and make sure they are inside the selection
             val helper = getTextFlowHelper(textFlow)
             
@@ -233,13 +231,13 @@ class TextSelectionSupport() {
           case 3 => //line selection mode, we simply map the mouse x coordinate to the bounds of the flow
             fromInLocal = fromInLocal.subtract(fromInLocal.getX, 0)
             toInLocal = toInLocal.add(bounds.getWidth, 0)
-            val startHitTest = textFlow `hitTest` fromInLocal
-            val endHitTest = textFlow `hitTest` toInLocal
+            val startHitTest = textFlow.getHitInfo(fromInLocal)
+            val endHitTest = textFlow.getHitInfo(toInLocal)
             getTextFlowHelper(textFlow).select(startHitTest.getCharIndex, endHitTest.getCharIndex)
             
           case _ => //normal selection mode
-            val startHitTest = textFlow `hitTest` fromInLocal
-            val endHitTest = textFlow `hitTest` toInLocal
+            val startHitTest = textFlow.getHitInfo(fromInLocal)
+            val endHitTest = textFlow.getHitInfo(toInLocal)
             getTextFlowHelper(textFlow).select(startHitTest.getCharIndex, endHitTest.getCharIndex)
             
         }
@@ -293,12 +291,12 @@ class TextSelectionSupport() {
       }
     }
     //if the children change, simply recompute the binding. The previous binding will get GCd transparently, so no need to cleanup
-    tf.getChildren.addListener({ evt => textLayoutBinding = createBinding }: ListChangeListener[Node])
+    tf.getChildren.addListener({ _ => textLayoutBinding = createBinding }: ListChangeListener[Node])
     def layout = textLayoutBinding.get
     
     
     def select(from: Int, to: Int): Unit = {
-      val shape = tf.rangeShape(from, to)
+      val shape = tf.getRangeShape(from, to, true)
       getOrCreateSelectionShape(tf).getElements.setAll(shape*)
       selectionStart `set` from
       selectionEnd `set` to

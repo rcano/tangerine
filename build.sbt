@@ -1,13 +1,13 @@
 name := "tangerine"
-version := "1.1.0"
+version := "1.2.0"
 
-ThisBuild / scalaVersion := "3.4.0"
+ThisBuild / scalaVersion := "3.8.3"
 
 fork := true
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-Wunused:all", "-rewrite", "-source", "3.4-migration")
 
-lazy val jfxVersion = "21.0.2"
+lazy val jfxVersion = "26.0.1"
 lazy val jfxClassifier = settingKey[String]("jfxClassifier")
 jfxClassifier := {
   if (scala.util.Properties.isWin) "win"
@@ -17,7 +17,7 @@ jfxClassifier := {
 }
 
 libraryDependencies ++= Seq(
-  "com.lihaoyi" %% "sourcecode" % "0.3.1",
+  "com.lihaoyi" %% "sourcecode" % "0.4.4",
 
   "com.github.pathikrit" %% "better-files" % "3.9.2",
   //"com.beachape" %% "enumeratum" % "1.5.13",
@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   "org.openjfx" % "javafx-controls" % jfxVersion % "provided" classifier jfxClassifier.value,
   "org.openjfx" % "javafx-base" % jfxVersion % "provided" classifier jfxClassifier.value,
   
-  "org.controlsfx" % "controlsfx" % "11.2.1" % "provided",
+  "org.controlsfx" % "controlsfx" % "11.2.3" % "provided",
 )
 
 lazy val moduleJars = taskKey[Seq[(Attributed[File], java.lang.module.ModuleDescriptor)]]("moduleJars")
@@ -41,14 +41,14 @@ moduleJars := {
   modules
 }
 
-javaOptions ++= {
-  val modules = moduleJars.value
-  Seq(
-    "--add-modules=" + modules.map(_._2.name).mkString(","),
-    "--module-path=" + modules.map(_._1.data.getAbsolutePath).mkString(java.io.File.pathSeparator)
-  )
-}
+// javaOptions ++= {
+//   val modules = moduleJars.value
+//   Seq(
+//     "--add-modules=" + modules.map(_._2.name).mkString(","),
+//     "--module-path=" + modules.map(_._1.data.getAbsolutePath).mkString(java.io.File.pathSeparator)
+//   )
+// }
 
-(reStart/javaOptions) += "--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED"
-reStart/mainClass := Some("expenser.ui.DevAppReloader")
-javacOptions := javaOptions.value
+//(reStart/javaOptions) += "--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED"
+// reStart/mainClass := Some("expenser.ui.DevAppReloader")
+//javacOptions := javaOptions.value

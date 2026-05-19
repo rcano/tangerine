@@ -126,7 +126,7 @@ class DevAppReloader extends Application {
             }
           }
 
-          lastApplication = loader.loadClass(getParameters.getRaw.get(0)).newInstance.asInstanceOf[Application]
+          lastApplication = loader.loadClass(getParameters.getRaw.get(0)).getDeclaredConstructors()(0).newInstance().asInstanceOf[Application]
           ParametersImpl.registerParameters(lastApplication, getParameters)
           try {
             lastApplication.init()
